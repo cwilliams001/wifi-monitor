@@ -607,7 +607,22 @@ function checkForNewAlerts() {
             if (events.length > lastEventCount && lastEventCount > 0) {
                 // New alert!
                 const newEvent = events[0];
+                
+                // Show notification
                 showNotification(newEvent.event_type, new Date(newEvent.timestamp).toLocaleTimeString());
+                
+                // Immediately update the attack history chart to show the new attack
+                updateAttackChart();
+                
+                // For jamming attacks, immediately refresh the spectrum chart
+                if (newEvent.event_type === 'jamming_attack') {
+                    updateSpectrumChart();
+                    
+                    // Force a page refresh in 2 seconds to ensure all data is updated
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                }
             }
             lastEventCount = events.length;
         })
@@ -667,8 +682,8 @@ function showNotification(type, time) {
     }, 10000);
 }
 
-// Start checking for alerts
-setInterval(checkForNewAlerts, 3000);
+// Start checking for alerts every second for faster response to attacks
+setInterval(checkForNewAlerts, 1000);
 
 // Auto-refresh the page every 30 seconds
 setTimeout(function() {
