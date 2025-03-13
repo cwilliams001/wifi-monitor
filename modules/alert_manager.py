@@ -43,6 +43,9 @@ class AlertManager:
         self.log_dir = log_dir
         self.nas_config = nas_config
         
+        # Initialize the shutdown flag before starting any threads
+        self.shutdown_requested = threading.Event()
+        
         # Ensure log directory exists
         os.makedirs(self.log_dir, exist_ok=True)
         
@@ -51,19 +54,22 @@ class AlertManager:
         
         # Alert queue for threaded processing
         self.alert_queue = Queue()
+        
+        # Create threads but don't start them yet
         self.alert_thread = threading.Thread(target=self._process_alert_queue)
         self.alert_thread.daemon = True
-        self.alert_thread.start()
         
         # NAS offload thread if enabled
         if nas_config and nas_config.get('enabled', False):
             self.nas_thread = threading.Thread(target=self._offload_logs_loop)
             self.nas_thread.daemon = True
-            self.nas_thread.start()
         else:
             self.nas_thread = None
             
-        self.shutdown_requested = threading.Event()
+        # Now start threads after all initialization is complete
+        self.alert_thread.start()
+        if self.nas_thread:
+            self.nas_thread.start()
         
         logging.info("Alert manager initialized")
     
@@ -253,8 +259,15 @@ class AlertManager:
         Process alerts from the queue in a background thread.
         This ensures alert sending doesn't block the detection threads.
         """
-        while not self.shutdown_requested.is_set() or not self.alert_queue.empty():
+        # Small delay to ensure proper initialization
+        time.sleep(0.1)
+        
+        while True:
             try:
+                # Check for shutdown and empty queue
+                if hasattr(self, 'shutdown_requested') and self.shutdown_requested.is_set() and self.alert_queue.empty():
+                    break
+                    
                 # Get an alert from the queue, with timeout to check shutdown flag periodically
                 try:
                     alert_data = self.alert_queue.get(timeout=1.0)

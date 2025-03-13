@@ -121,7 +121,7 @@ class SpectrumAnalyzer(Thread):
                 return False
                 
             # Create device instance
-            self.sdr = SoapySDR.Device(device_info)
+            self.sdr = SoapySDR.Device(dict(device_info))
             
             # Configure SDR settings
             self.sdr.setSampleRate(SOAPY_SDR_RX, 0, self.sample_rate)
