@@ -439,20 +439,32 @@ function processSpectrumData(data) {
     // Create a copy to avoid modifying the original
     const processedData = JSON.parse(JSON.stringify(data));
     
+    // Check if datasets exist
+    if (!processedData.datasets || processedData.datasets.length === 0) {
+        console.error('No datasets found in spectrum data');
+        return data;
+    }
+    
     // Enhance visual appearance
-    processedData.datasets[0].borderWidth = 4; // Current power - make more prominent
-    processedData.datasets[0].borderColor = 'rgba(52, 152, 219, 1)'; // Bright blue
-    processedData.datasets[0].backgroundColor = 'rgba(52, 152, 219, 0.2)';
+    if (processedData.datasets.length > 0) {
+        processedData.datasets[0].borderWidth = 4; // Current power - make more prominent
+        processedData.datasets[0].borderColor = 'rgba(52, 152, 219, 1)'; // Bright blue
+        processedData.datasets[0].backgroundColor = 'rgba(52, 152, 219, 0.2)';
+    }
     
-    processedData.datasets[1].borderWidth = 2; // Baseline
-    processedData.datasets[1].borderColor = 'rgba(46, 204, 113, 1)'; // Green
-    processedData.datasets[1].backgroundColor = 'rgba(46, 204, 113, 0.1)';
-    processedData.datasets[1].borderDash = [5, 5]; // Make baseline dashed
+    if (processedData.datasets.length > 1) {
+        processedData.datasets[1].borderWidth = 2; // Baseline
+        processedData.datasets[1].borderColor = 'rgba(46, 204, 113, 1)'; // Green
+        processedData.datasets[1].backgroundColor = 'rgba(46, 204, 113, 0.1)';
+        processedData.datasets[1].borderDash = [5, 5]; // Make baseline dashed
+    }
     
-    processedData.datasets[2].borderWidth = 2; // Threshold
-    processedData.datasets[2].borderColor = 'rgba(231, 76, 60, 1)'; // Red
-    processedData.datasets[2].backgroundColor = 'rgba(231, 76, 60, 0.1)';
-    processedData.datasets[2].fill = false; // Don't fill under threshold line
+    if (processedData.datasets.length > 2) {
+        processedData.datasets[2].borderWidth = 2; // Threshold
+        processedData.datasets[2].borderColor = 'rgba(231, 76, 60, 1)'; // Red
+        processedData.datasets[2].backgroundColor = 'rgba(231, 76, 60, 0.1)';
+        processedData.datasets[2].fill = false; // Don't fill under threshold line
+    }
     
     // Add fill between current and baseline to highlight differences
     if (processedData.datasets.length >= 2) {
@@ -485,6 +497,9 @@ function calculateYAxisMax(data) {
                 maxValue = currentPowerData[i];
             }
         }
+    } else {
+        // If no valid data, return a reasonable default
+        return -50;
     }
     
     // Add some padding and round to nearest 5
@@ -499,7 +514,8 @@ function addSignalStrengthBackground(ctx, chart) {
     // This function would add visual enhancements like colored backgrounds
     // for different signal strength ranges.
     // Requires custom drawing which is complex - left as a future enhancement
-}
+    // Just a placeholder for now that does nothing
+    return;
 }
 
 // Fetch attack history data
