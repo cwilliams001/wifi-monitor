@@ -147,17 +147,24 @@ sudo systemctl enable wifi-monitor
 
 ## Preparing WiFi Adapter
 
-To use the system, you need to set your WiFi adapter to monitor mode:
+To use the system, you need to set your WiFi adapter to monitor mode. You can use the included script:
 
 ```bash
 # Check interface name
 ip a
 
-# Set monitor mode
+# Set monitor mode using our script
+sudo ./enable_monitor_mode.sh wlan1  # Replace wlan1 with your interface name
+```
+
+Or use airmon-ng:
+
+```bash
+# Set monitor mode with airmon-ng
 sudo airmon-ng start wlan1  # Replace wlan1 with your interface name
 ```
 
-Alternatively, the system can attempt to set monitor mode automatically if it has sufficient permissions.
+The system will check if your interface is in monitor mode and provide instructions if it's not properly set up.
 
 ## Web UI Dashboard
 

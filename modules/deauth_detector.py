@@ -263,8 +263,13 @@ class DeauthDetector(Thread):
         try:
             # Validate interface is ready
             if not self.test_mode and not self._setup_interface():
-                logging.warning("Interface setup failed. Running in test-only mode.")
-                self.test_mode = True
+                logging.error("Interface setup failed. Exiting deauth detector.")
+                logging.error(f"Interface {self.interface} is not in monitor mode.")
+                logging.error("Please put your interface in monitor mode manually with:")
+                logging.error(f"    sudo ip link set {self.interface} down")
+                logging.error(f"    sudo iw dev {self.interface} set type monitor")
+                logging.error(f"    sudo ip link set {self.interface} up")
+                return
                 
             # Set fixed channel if specified, otherwise start channel hopping
             if self.channel > 0 and not self.test_mode:
