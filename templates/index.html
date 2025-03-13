@@ -3,7 +3,8 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block head %}
-<meta http-equiv="refresh" content="10">
+<meta http-equiv="refresh" content="30">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -42,6 +43,20 @@
             {% endfor %}
         </div>
     </div>
+    
+    <div class="card chart">
+        <h2>RF Spectrum</h2>
+        <div class="spectrum-chart-container">
+            <canvas id="spectrumChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="card chart">
+        <h2>Attack History</h2>
+        <div class="attack-chart-container">
+            <canvas id="attackChart"></canvas>
+        </div>
+    </div>
 
     <div class="card recent-events">
         <h2>Recent Events</h2>
@@ -68,9 +83,124 @@
 
 {% block scripts %}
 <script>
-// Auto-refresh the page every 10 seconds
+// Initialize charts
+let spectrumChart = null;
+let attackChart = null;
+
+// Fetch spectrum data
+function updateSpectrumChart() {
+    fetch('/api/graph/spectrum')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('spectrumChart').getContext('2d');
+            
+            // Destroy previous chart if it exists
+            if (spectrumChart) {
+                spectrumChart.destroy();
+            }
+            
+            // Create new chart
+            spectrumChart = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Frequency (MHz)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Power (dBm)'
+                            }
+                        }
+                    },
+                    animation: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'RF Spectrum Power Levels'
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching spectrum data:', error));
+}
+
+// Fetch attack history data
+function updateAttackChart() {
+    fetch('/api/graph/attack_history')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('attackChart').getContext('2d');
+            
+            // Destroy previous chart if it exists
+            if (attackChart) {
+                attackChart.destroy();
+            }
+            
+            // Create new chart
+            attackChart = new Chart(ctx, {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Number of Attacks'
+                            },
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Attack History by Day'
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error fetching attack history data:', error));
+}
+
+// Initial load
+window.addEventListener('load', function() {
+    updateSpectrumChart();
+    updateAttackChart();
+    
+    // Update charts periodically
+    setInterval(updateSpectrumChart, 5000);
+    setInterval(updateAttackChart, 60000);
+});
+
+// Auto-refresh the page every 30 seconds
 setTimeout(function() {
     location.reload();
-}, 10000);
+}, 30000);
 </script>
 {% endblock %}

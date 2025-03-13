@@ -18,6 +18,7 @@ import json
 import os
 from pathlib import Path
 import random
+import requests
 
 # Set UHD_IMAGES_DIR environment variable if not already set
 if 'UHD_IMAGES_DIR' not in os.environ:
@@ -477,6 +478,11 @@ class SpectrumAnalyzer(Thread):
                         band_jamming = True
                         affected_frequencies.append(int(freq/1e6))
                         jamming_freqs.append(freq)
+                        
+                    # Collect frequency data for visualization
+                    freq_mhz = int(freq/1e6)
+                    baseline = self.baselines.get(f"{freq_mhz}", None)
+                    self._collect_spectrum_data(freq_mhz, power, baseline)
                 
                 # Move to next frequency
                 freq += step
@@ -544,6 +550,65 @@ class SpectrumAnalyzer(Thread):
             except Exception as e:
                 logging.error(f"Error cleaning up SDR: {e}")
     
+    def _collect_spectrum_data(self, freq_mhz, power, baseline):
+        """
+        Collect spectrum data for visualization
+        
+        Args:
+            freq_mhz: Frequency in MHz
+            power: Measured power in dBm
+            baseline: Baseline power in dBm
+        """
+        # We'll collect data for a full band scan before sending
+        if not hasattr(self, '_spectrum_data_buffer'):
+            self._spectrum_data_buffer = {
+                'frequencies': [],
+                'powers': [],
+                'baselines': [],
+                'threshold_db': self.threshold_relative_db,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+        # Add this frequency's data
+        self._spectrum_data_buffer['frequencies'].append(freq_mhz)
+        self._spectrum_data_buffer['powers'].append(power)
+        self._spectrum_data_buffer['baselines'].append(baseline if baseline is not None else -100)
+        
+        # If we have enough data points or we're at the end of a band, send it
+        if len(self._spectrum_data_buffer['frequencies']) >= 100:
+            self._send_spectrum_data_to_web_ui()
+            
+    def _send_spectrum_data_to_web_ui(self):
+        """Send collected spectrum data to the Web UI for visualization"""
+        if not hasattr(self, '_spectrum_data_buffer') or not self._spectrum_data_buffer['frequencies']:
+            return
+            
+        try:
+            # Send data to Web UI
+            response = requests.post(
+                'http://127.0.0.1:8080/api/spectrum',
+                json=self._spectrum_data_buffer,
+                timeout=1
+            )
+            
+            if response.status_code < 400:
+                logging.debug("Sent spectrum data to Web UI")
+            else:
+                logging.debug(f"Failed to send spectrum data to Web UI: {response.status_code}")
+                
+        except Exception as e:
+            # Don't log errors, the Web UI might not be running yet
+            pass
+            
+        # Reset buffer
+        self._spectrum_data_buffer = {
+            'frequencies': [],
+            'powers': [],
+            'baselines': [],
+            'threshold_db': self.threshold_relative_db,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
     def stop(self):
         """Stop the spectrum analyzer cleanly"""
         logging.info("Stopping spectrum analyzer...")

@@ -110,6 +110,18 @@ footer {
     .dashboard .recent-events {
         grid-column: span 2;
     }
+    
+    .dashboard .chart {
+        grid-column: span 2;
+    }
+}
+
+/* Chart styles */
+.spectrum-chart-container,
+.attack-chart-container {
+    height: 300px;
+    position: relative;
+    margin-top: 1rem;
 }
 
 /* System info styles */

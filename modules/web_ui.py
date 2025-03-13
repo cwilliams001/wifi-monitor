@@ -14,7 +14,7 @@ import time
 import logging
 import threading
 import socketserver
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import yaml
 from functools import wraps
@@ -34,6 +34,8 @@ class SystemState:
         self.last_events = []
         self.system_info = {}
         self.start_time = time.time()
+        self.spectrum_data = []
+        self.attack_history = []
 
 # Initialize global state
 system_state = SystemState()
@@ -80,6 +82,115 @@ def status():
 def events():
     """Return recent events as JSON"""
     return jsonify(system_state.last_events)
+
+@app.route('/api/graph/attack_history')
+@requires_auth
+def attack_history_data():
+    """Return attack history data for graphs"""
+    # Group by day and event type for the chart
+    days = {}
+    for event in system_state.attack_history:
+        # Convert timestamp to day
+        day = datetime.fromtimestamp(event['timestamp']/1000).strftime('%Y-%m-%d')
+        event_type = event['event_type']
+        
+        if day not in days:
+            days[day] = {}
+            
+        if event_type not in days[day]:
+            days[day][event_type] = 0
+            
+        days[day][event_type] += 1
+    
+    # Convert to format suitable for charts
+    result = {
+        'labels': [],
+        'datasets': []
+    }
+    
+    # Get all unique event types
+    event_types = set()
+    for day_data in days.values():
+        for event_type in day_data:
+            event_types.add(event_type)
+    
+    # Generate colors for each event type
+    colors = {
+        'deauth_attack': 'rgba(231, 76, 60, 0.8)',  # Red
+        'jamming_attack': 'rgba(243, 156, 18, 0.8)'  # Orange
+    }
+    
+    # Sort days
+    sorted_days = sorted(days.keys())
+    result['labels'] = sorted_days
+    
+    # Create datasets for each event type
+    for event_type in event_types:
+        dataset = {
+            'label': event_type.replace('_', ' ').title(),
+            'data': [days.get(day, {}).get(event_type, 0) for day in sorted_days],
+            'backgroundColor': colors.get(event_type, 'rgba(52, 152, 219, 0.8)'),  # Default blue
+            'borderColor': colors.get(event_type, 'rgba(52, 152, 219, 1.0)'),
+            'borderWidth': 1
+        }
+        result['datasets'].append(dataset)
+    
+    return jsonify(result)
+
+@app.route('/api/graph/spectrum')
+@requires_auth
+def spectrum_data():
+    """Return spectrum data for graphs"""
+    # Get the most recent spectrum data point
+    if not system_state.spectrum_data:
+        return jsonify({
+            'labels': [],
+            'datasets': []
+        })
+    
+    # Get the most recent data
+    recent_data = system_state.spectrum_data[-1]
+    
+    # Format for chart.js
+    result = {
+        'labels': [],
+        'datasets': [{
+            'label': 'Current Power (dBm)',
+            'data': [],
+            'backgroundColor': 'rgba(52, 152, 219, 0.2)',
+            'borderColor': 'rgba(52, 152, 219, 1)',
+            'borderWidth': 2,
+            'pointRadius': 0
+        }, {
+            'label': 'Baseline (dBm)',
+            'data': [],
+            'backgroundColor': 'rgba(46, 204, 113, 0.2)',
+            'borderColor': 'rgba(46, 204, 113, 1)',
+            'borderWidth': 2,
+            'pointRadius': 0
+        }, {
+            'label': 'Threshold (dBm)',
+            'data': [],
+            'backgroundColor': 'rgba(231, 76, 60, 0.2)',
+            'borderColor': 'rgba(231, 76, 60, 1)',
+            'borderWidth': 2,
+            'pointRadius': 0,
+            'fill': false
+        }]
+    }
+    
+    # Process data - this is a placeholder since we don't know the exact format
+    # Adjust this based on the actual format of spectrum_data
+    if 'frequencies' in recent_data and 'powers' in recent_data and 'baselines' in recent_data:
+        result['labels'] = recent_data['frequencies']
+        result['datasets'][0]['data'] = recent_data['powers']
+        result['datasets'][1]['data'] = recent_data['baselines']
+        
+        # Calculate threshold from baseline
+        threshold_offset = recent_data.get('threshold_db', 15)  # Default to 15dB
+        result['datasets'][2]['data'] = [b + threshold_offset for b in recent_data['baselines']]
+    
+    return jsonify(result)
 
 @app.route('/logs')
 @requires_auth
@@ -205,10 +316,69 @@ def receive_alert():
             MAX_EVENTS = 100
             if len(system_state.last_events) > MAX_EVENTS:
                 system_state.last_events = system_state.last_events[:MAX_EVENTS]
+            
+            # Track attack history for graphs
+            event_type = alert_data.get('event_type')
+            timestamp = alert_data.get('timestamp')
+            
+            # Add to attack history for graphing
+            if event_type and timestamp:
+                # Convert to timestamp for easier graphing
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                except ValueError:
+                    dt = datetime.utcnow()
+                    
+                unix_time = dt.timestamp() * 1000  # For JavaScript Date
+                
+                system_state.attack_history.append({
+                    'timestamp': unix_time,
+                    'event_type': event_type,
+                    'data': alert_data
+                })
+                
+                # Keep only last 7 days of history
+                cutoff = (datetime.utcnow() - timedelta(days=7)).timestamp() * 1000
+                system_state.attack_history = [
+                    event for event in system_state.attack_history 
+                    if event['timestamp'] > cutoff
+                ]
                 
             return jsonify({"status": "success"})
     except Exception as e:
         logging.error(f"Error processing alert: {e}")
+        
+    return jsonify({"status": "error"}), 400
+    
+@app.route('/api/spectrum', methods=['POST'])
+def update_spectrum():
+    """
+    API endpoint to receive spectrum data from the monitoring system
+    This is used for displaying spectrum graphs in the UI
+    """
+    # Check if request is from localhost
+    if request.remote_addr != '127.0.0.1':
+        abort(403)  # Forbidden for non-localhost access
+    
+    # Process the spectrum data
+    try:
+        spectrum_data = request.json
+        if spectrum_data:
+            # Add timestamp if not present
+            if 'timestamp' not in spectrum_data:
+                spectrum_data['timestamp'] = datetime.utcnow().isoformat()
+                
+            # Add to spectrum data list
+            system_state.spectrum_data.append(spectrum_data)
+            
+            # Keep only the most recent data points
+            MAX_SPECTRUM_POINTS = 1000
+            if len(system_state.spectrum_data) > MAX_SPECTRUM_POINTS:
+                system_state.spectrum_data = system_state.spectrum_data[-MAX_SPECTRUM_POINTS:]
+                
+            return jsonify({"status": "success"})
+    except Exception as e:
+        logging.error(f"Error processing spectrum data: {e}")
         
     return jsonify({"status": "error"}), 400
 
