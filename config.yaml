@@ -48,7 +48,7 @@ jamming_detection:
 alerts:
   web_server:
     enabled: true
-    url: "http://192.168.1.60:5000/api/alerts"
+    url: "http://192.168.1.60:8080/api/alert"
     auth_token: "your_secret_token"
     timeout: 5                      # HTTP request timeout in seconds
   home_assistant:
