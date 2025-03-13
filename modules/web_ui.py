@@ -358,9 +358,9 @@ def receive_alert():
     API endpoint to receive alerts from the monitoring system
     This is used for internal communication, not external access
     """
-    # Check if request is from localhost
-    if request.remote_addr != '127.0.0.1':
-        abort(403)  # Forbidden for non-localhost access
+    # Check if request is from localhost or local network (192.168.1.x)
+    if not (request.remote_addr == '127.0.0.1' or request.remote_addr.startswith('192.168.1.')):
+        abort(403)  # Forbidden for non-local access
     
     # Process the alert
     try:
