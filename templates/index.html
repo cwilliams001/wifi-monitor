@@ -45,28 +45,22 @@
     </div>
     
     <div class="card chart">
-        <h2>Deauth Frames (Real-time)</h2>
-        <div class="deauth-chart-container">
+        <h2>Deauth Frames (Real-time) - Blue: Normal, Red: Alert Threshold Exceeded</h2>
+        <div class="deauth-chart-container" style="height: 350px;">
             <canvas id="deauthChart"></canvas>
-        </div>
-        <div class="chart-description">
-            <p>Shows deauthentication frames in 5-second intervals. Blue bars show normal activity, red bars indicate when frames exceed the alert threshold (yellow line). Time labels shown every 15 seconds to improve readability.</p>
         </div>
     </div>
 
     <div class="card chart">
-        <h2>RF Spectrum</h2>
-        <div class="spectrum-chart-container">
+        <h2>RF Spectrum - Blue: Current, Green: Baseline, Red: Threshold</h2>
+        <div class="spectrum-chart-container" style="height: 350px;">
             <canvas id="spectrumChart"></canvas>
-        </div>
-        <div class="chart-description">
-            <p>Shows WiFi frequency spectrum power levels. Current values (blue), baseline (green), and threshold (red). Simplified frequency display with fewer labels for better readability.</p>
         </div>
     </div>
     
     <div class="card chart">
         <h2>Attack History</h2>
-        <div class="attack-chart-container">
+        <div class="attack-chart-container" style="height: 350px;">
             <canvas id="attackChart"></canvas>
         </div>
     </div>
@@ -191,17 +185,26 @@ function updateDeauthChart() {
                         y: {
                             title: {
                                 display: true,
-                                text: 'Frame Count'
+                                text: 'Frame Count',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
                             },
                             beginAtZero: true,
-                            suggestedMax: 12,  // Even lower max to make small numbers more visible
+                            suggestedMin: 0,
+                            suggestedMax: 20,  // Increased vertical range
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines
+                                drawBorder: true,
+                                borderWidth: 1,
                             },
                             ticks: {
-                                stepSize: 1,  // Always use whole numbers
+                                padding: 5,
+                                stepSize: 2,  // Show ticks every 2 units for cleaner look
                                 font: {
-                                    weight: 'bold'
+                                    weight: 'bold',
+                                    size: 12
                                 }
                             }
                         }
@@ -312,6 +315,19 @@ function updateSpectrumChart() {
                             },
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines for better visibility
+                                drawBorder: true,
+                                borderWidth: 1
+                            },
+                            // Expand the vertical range to show more detail
+                            // Negative values are expected for dBm measurements
+                            min: -100,
+                            max: -30,
+                            ticks: {
+                                stepSize: 10, // Show ticks every 10 dBm
+                                font: {
+                                    weight: 'bold',
+                                    size: 12
+                                }
                             }
                         }
                     },
