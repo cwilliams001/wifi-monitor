@@ -263,8 +263,8 @@ class DeauthDetector(Thread):
         try:
             # Validate interface is ready
             if not self.test_mode and not self._setup_interface():
-                logging.error("Interface setup failed. Exiting deauth detector.")
-                return
+                logging.warning("Interface setup failed. Running in test-only mode.")
+                self.test_mode = True
                 
             # Set fixed channel if specified, otherwise start channel hopping
             if self.channel > 0 and not self.test_mode:

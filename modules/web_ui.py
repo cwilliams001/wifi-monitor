@@ -175,7 +175,7 @@ def spectrum_data():
             'borderColor': 'rgba(231, 76, 60, 1)',
             'borderWidth': 2,
             'pointRadius': 0,
-            'fill': false
+            'fill': 0
         }]
     }
     

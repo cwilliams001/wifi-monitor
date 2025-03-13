@@ -135,7 +135,9 @@ def main():
         except ImportError:
             logging.error("Deauth detector module not found. Continuing without deauth detection.")
         except Exception as e:
+            import traceback
             logging.error(f"Failed to initialize deauth detector: {e}")
+            logging.error(f"Detailed error: {traceback.format_exc()}")
     
     # Spectrum analyzer
     if config['jamming_detection']['enabled'] and not args.no_sdr:
