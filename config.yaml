@@ -18,6 +18,7 @@ deauth_detection:
     count: 10                       # Number of deauth frames to trigger alert
     window: 30                      # Time window in seconds
   whitelist:                        # MAC addresses to ignore (APs that legitimately send deauths)
+    []                              # Empty list - uncomment line below to add MAC addresses
     # - "00:11:22:33:44:55"
   channel_hop_interval: 5           # Seconds between channel changes when hopping
 

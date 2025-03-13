@@ -48,7 +48,11 @@ class DeauthDetector(Thread):
         self.threshold_window = config['threshold']['window']
         self.channel = config['channel']
         self.channel_hop_interval = config['channel_hop_interval']
-        self.whitelist = [mac.lower() for mac in config.get('whitelist', [])]
+        # Handle whitelist properly - ensure it's not None
+        if 'whitelist' in config and config['whitelist'] is not None:
+            self.whitelist = [mac.lower() for mac in config['whitelist']]
+        else:
+            self.whitelist = []
         
         self.alert_manager = alert_manager
         self.shutdown_event = shutdown_event
