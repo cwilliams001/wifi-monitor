@@ -271,10 +271,19 @@ function updateSpectrumChart() {
                 spectrumChart.destroy();
             }
             
+            // If there's no data yet, initialize with empty data
+            if (!data.labels || data.labels.length === 0) {
+                console.log('No spectrum data available yet');
+                return;
+            }
+            
+            // Process and enhance the data for better visualization
+            const processedData = processSpectrumData(data);
+            
             // Create new chart
             spectrumChart = new Chart(ctx, {
                 type: 'line',
-                data: data,
+                data: processedData,
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -288,19 +297,24 @@ function updateSpectrumChart() {
                                     size: 14
                                 }
                             },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)',
+                            },
                             ticks: {
                                 maxRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 10, // Show fewer frequency points
+                                maxTicksLimit: 8, // Even fewer frequency points
                                 callback: function(value, index, values) {
-                                    // Show fewer labels to reduce clutter
+                                    // Format frequency labels more clearly
                                     if (index % 3 === 0) {
-                                        return this.getLabelForValue(value);
+                                        return Math.round(value);
                                     }
                                     return null;
                                 },
                                 font: {
-                                    weight: 'bold'
+                                    weight: 'bold',
+                                    size: 12
                                 }
                             }
                         },
@@ -316,20 +330,29 @@ function updateSpectrumChart() {
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines for better visibility
                                 drawBorder: true,
-                                borderWidth: 1
+                                borderWidth: 1,
+                                z: -1
                             },
-                            // Expand the vertical range to show more detail
-                            // Negative values are expected for dBm measurements
-                            min: -100,
-                            max: -30,
+                            // Dynamic range based on actual data
+                            // Still keeping a fixed min to avoid too much fluctuation
+                            min: -90,
+                            max: calculateYAxisMax(processedData),
                             ticks: {
-                                stepSize: 10, // Show ticks every 10 dBm
+                                stepSize: 5, // Show ticks every 5 dBm for more detail
                                 font: {
                                     weight: 'bold',
                                     size: 12
+                                },
+                                callback: function(value) {
+                                    // Highlight noise floor and signal level ranges
+                                    return value + ' dBm';
                                 }
                             }
                         }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
                     },
                     animation: false,
                     plugins: {
@@ -339,14 +362,17 @@ function updateSpectrumChart() {
                                 font: {
                                     size: 12
                                 },
-                                padding: 20
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'line'
                             }
                         },
                         title: {
                             display: true,
-                            text: 'RF Spectrum Power Levels',
+                            text: 'WiFi Spectrum Analysis',
                             font: {
-                                size: 16
+                                size: 16,
+                                weight: 'bold'
                             }
                         },
                         tooltip: {
@@ -354,13 +380,46 @@ function updateSpectrumChart() {
                             titleFont: {
                                 size: 13,
                                 weight: 'bold'
+                            },
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return 'Frequency: ' + Math.round(tooltipItems[0].label) + ' MHz';
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(1) + ' dBm';
+                                        
+                                        // Add interpretations based on power levels
+                                        if (context.dataset.label === 'Current Power (dBm)') {
+                                            if (context.parsed.y > -50) {
+                                                label += ' (Very Strong)';
+                                            } else if (context.parsed.y > -65) {
+                                                label += ' (Strong)';
+                                            } else if (context.parsed.y > -75) {
+                                                label += ' (Good)';
+                                            } else if (context.parsed.y > -85) {
+                                                label += ' (Fair)';
+                                            } else {
+                                                label += ' (Weak)';
+                                            }
+                                        }
+                                    }
+                                    return label;
+                                }
                             }
-                        }
+                        },
+                        /* Note: The annotation plugin is not loaded by default.
+                           If you want to enable this, you'd need to include the chartjs-plugin-annotation
+                           from https://www.chartjs.org/chartjs-plugin-annotation/latest/ */
                     },
                     elements: {
                         line: {
                             borderWidth: 3, // Thicker lines
-                            tension: 0.2 // Slightly smoother curves
+                            tension: 0.3 // Smoother curves
                         },
                         point: {
                             radius: 0 // Hide points for cleaner look
@@ -368,8 +427,79 @@ function updateSpectrumChart() {
                     }
                 }
             });
+
+            // Add colored background regions for signal strength interpretation
+            addSignalStrengthBackground(ctx, spectrumChart);
         })
         .catch(error => console.error('Error fetching spectrum data:', error));
+}
+
+// Process spectrum data to enhance visualization
+function processSpectrumData(data) {
+    // Create a copy to avoid modifying the original
+    const processedData = JSON.parse(JSON.stringify(data));
+    
+    // Enhance visual appearance
+    processedData.datasets[0].borderWidth = 4; // Current power - make more prominent
+    processedData.datasets[0].borderColor = 'rgba(52, 152, 219, 1)'; // Bright blue
+    processedData.datasets[0].backgroundColor = 'rgba(52, 152, 219, 0.2)';
+    
+    processedData.datasets[1].borderWidth = 2; // Baseline
+    processedData.datasets[1].borderColor = 'rgba(46, 204, 113, 1)'; // Green
+    processedData.datasets[1].backgroundColor = 'rgba(46, 204, 113, 0.1)';
+    processedData.datasets[1].borderDash = [5, 5]; // Make baseline dashed
+    
+    processedData.datasets[2].borderWidth = 2; // Threshold
+    processedData.datasets[2].borderColor = 'rgba(231, 76, 60, 1)'; // Red
+    processedData.datasets[2].backgroundColor = 'rgba(231, 76, 60, 0.1)';
+    processedData.datasets[2].fill = false; // Don't fill under threshold line
+    
+    // Add fill between current and baseline to highlight differences
+    if (processedData.datasets.length >= 2) {
+        processedData.datasets[0].fill = {
+            target: 1,
+            above: 'rgba(52, 152, 219, 0.2)',
+            below: 'rgba(231, 76, 60, 0.1)'
+        };
+    }
+    
+    // Simplify frequency labels if too many
+    if (processedData.labels && processedData.labels.length > 20) {
+        // Keep every nth label based on data size
+        const skipFactor = Math.ceil(processedData.labels.length / 20);
+        processedData.simplifiedLabels = processedData.labels.filter((label, index) => index % skipFactor === 0);
+    }
+    
+    return processedData;
+}
+
+// Calculate appropriate y-axis maximum based on data
+function calculateYAxisMax(data) {
+    // Find the maximum value in the current power dataset
+    let maxValue = -100; // Default minimum
+    
+    if (data && data.datasets && data.datasets.length > 0 && data.datasets[0].data) {
+        const currentPowerData = data.datasets[0].data;
+        for (let i = 0; i < currentPowerData.length; i++) {
+            if (currentPowerData[i] > maxValue) {
+                maxValue = currentPowerData[i];
+            }
+        }
+    }
+    
+    // Add some padding and round to nearest 5
+    maxValue = Math.ceil((maxValue + 5) / 5) * 5;
+    
+    // Ensure max is at least -50 for visibility
+    return Math.max(maxValue, -50);
+}
+
+// Add colored background regions to indicate signal strength ranges
+function addSignalStrengthBackground(ctx, chart) {
+    // This function would add visual enhancements like colored backgrounds
+    // for different signal strength ranges.
+    // Requires custom drawing which is complex - left as a future enhancement
+}
 }
 
 // Fetch attack history data
