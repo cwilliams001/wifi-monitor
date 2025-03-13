@@ -61,6 +61,21 @@ class DeauthDetector(Thread):
         # Queue to store recent deauth frames with timestamps
         self.deauth_history = deque(maxlen=1000)  # Store up to 1000 recent frames
         
+        # For tracking deauth counts in 10-second intervals
+        self.deauth_counts = [0] * 60  # 10 minutes of data in 10-second intervals
+        self.last_count_update = time.time()
+        self.current_interval_count = 0
+        
+        # For reporting threshold and deauth counts to Web UI
+        try:
+            # Import Web UI functions here to avoid circular imports
+            from modules.web_ui import system_state
+            system_state.deauth_threshold = self.threshold_count
+            self.web_ui_available = True
+            self.system_state = system_state
+        except ImportError:
+            self.web_ui_available = False
+        
         # For channel hopping
         self.channel_hop_process = None
         self.sniffer_running = False
@@ -114,6 +129,30 @@ class DeauthDetector(Thread):
             return True
             
         return False
+        
+    def _update_deauth_count(self):
+        """Update the deauth count tracking for the Web UI graph"""
+        now = time.time()
+        
+        # Increment current interval count
+        self.current_interval_count += 1
+        
+        # Check if we need to update the interval
+        if now - self.last_count_update >= 10:  # 10-second intervals
+            # Shift all values one position to the left
+            self.deauth_counts.pop(0)
+            self.deauth_counts.append(self.current_interval_count)
+            
+            # Update web UI state if available
+            if hasattr(self, 'web_ui_available') and self.web_ui_available:
+                self.system_state.deauth_counts = self.deauth_counts
+                
+            # Reset for next interval
+            self.current_interval_count = 0
+            self.last_count_update = now
+            
+            # Debug log the current deauth count
+            logging.debug(f"Deauth count updated: {self.deauth_counts[-1]} frames in the last 10s")
     
     def _packet_handler(self, packet):
         """Process captured packets and detect deauth attacks"""
@@ -135,6 +174,9 @@ class DeauthDetector(Thread):
         # Record this deauth frame with current timestamp
         now = time.time()
         self.deauth_history.append((now, src, dst, reason))
+        
+        # Update deauth count tracking
+        self._update_deauth_count()
         
         # Count recent deauth frames within our time window
         cutoff_time = now - self.threshold_window

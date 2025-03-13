@@ -36,6 +36,8 @@ class SystemState:
         self.start_time = time.time()
         self.spectrum_data = []
         self.attack_history = []
+        self.deauth_counts = [0] * 60  # Last 60 10-second intervals of deauth counts
+        self.deauth_threshold = 10  # Default threshold, gets updated from config
 
 # Initialize global state
 system_state = SystemState()
@@ -134,6 +136,63 @@ def attack_history_data():
             'borderWidth': 1
         }
         result['datasets'].append(dataset)
+    
+    return jsonify(result)
+
+@app.route('/api/graph/deauth_frames')
+@requires_auth
+def deauth_frames_data():
+    """Return deauth frames data for real-time graph"""
+    # Get deauth count time series
+    # This endpoint is used for the real-time deauth frame counter visualization
+    
+    # Prepare frame data structure - assume last 10 minutes of data
+    # with 10-second intervals
+    intervals = 60  # 10 minutes in 10-second intervals
+    
+    # Simulation data if we don't have real deauth data yet
+    deauth_counts = system_state.deauth_counts if hasattr(system_state, 'deauth_counts') else []
+    
+    # If we don't have enough data, pad with zeros
+    if len(deauth_counts) < intervals:
+        padding = [0] * (intervals - len(deauth_counts))
+        deauth_counts = padding + deauth_counts
+    elif len(deauth_counts) > intervals:
+        deauth_counts = deauth_counts[-intervals:]
+    
+    # Create timestamps for the data
+    now = datetime.now()
+    timestamps = []
+    for i in range(intervals):
+        time_ago = now - timedelta(seconds=(intervals-i-1)*10)
+        timestamps.append(time_ago.strftime('%H:%M:%S'))
+    
+    # Define the threshold from config (usually 10)
+    threshold = 10  # Default value, should be read from config
+    
+    # Create the chart data
+    result = {
+        'labels': timestamps,
+        'datasets': [
+            {
+                'label': 'Deauth Frames',
+                'data': deauth_counts,
+                'backgroundColor': 'rgba(231, 76, 60, 0.2)',
+                'borderColor': 'rgba(231, 76, 60, 1)',
+                'borderWidth': 2,
+                'tension': 0.4  # Makes the line curved for better visualization
+            },
+            {
+                'label': 'Threshold',
+                'data': [threshold] * intervals,
+                'backgroundColor': 'rgba(0, 0, 0, 0)',
+                'borderColor': 'rgba(255, 193, 7, 1)',
+                'borderWidth': 2,
+                'borderDash': [5, 5],  # Dashed line for threshold
+                'pointRadius': 0
+            }
+        ]
+    }
     
     return jsonify(result)
 

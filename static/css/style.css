@@ -118,10 +118,18 @@ footer {
 
 /* Chart styles */
 .spectrum-chart-container,
-.attack-chart-container {
+.attack-chart-container,
+.deauth-chart-container {
     height: 300px;
     position: relative;
     margin-top: 1rem;
+}
+
+.chart-description {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
 }
 
 /* System info styles */
