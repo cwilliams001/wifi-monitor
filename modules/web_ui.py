@@ -336,9 +336,13 @@ class WebUI(threading.Thread):
                 app.run(host=self.host, port=self.port, debug=True, use_reloader=False)
             else:
                 # Use custom threaded server
-                self.server = ThreadedHTTPServer((self.host, self.port), app.wsgi_app)
+                from werkzeug.serving import WSGIRequestHandler
                 
-                # Run in a separate thread to allow for shutdown
+                # Create a proper WSGI server
+                from werkzeug.serving import make_server
+                self.server = make_server(self.host, self.port, app, threaded=True)
+                
+                # Run in a separate thread to allow for shutdown  
                 server_thread = threading.Thread(target=self.server.serve_forever)
                 server_thread.daemon = True
                 server_thread.start()
