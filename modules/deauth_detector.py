@@ -61,8 +61,8 @@ class DeauthDetector(Thread):
         # Queue to store recent deauth frames with timestamps
         self.deauth_history = deque(maxlen=1000)  # Store up to 1000 recent frames
         
-        # For tracking deauth counts in 10-second intervals
-        self.deauth_counts = [0] * 60  # 10 minutes of data in 10-second intervals
+        # For tracking deauth counts in 5-second intervals
+        self.deauth_counts = [0] * 60  # 5 minutes of data in 5-second intervals
         self.last_count_update = time.time()
         self.current_interval_count = 0
         
@@ -138,7 +138,7 @@ class DeauthDetector(Thread):
         self.current_interval_count += 1
         
         # Check if we need to update the interval
-        if now - self.last_count_update >= 10:  # 10-second intervals
+        if now - self.last_count_update >= 5:  # 5-second intervals
             # Shift all values one position to the left
             self.deauth_counts.pop(0)
             self.deauth_counts.append(self.current_interval_count)

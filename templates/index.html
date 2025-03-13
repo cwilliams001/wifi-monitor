@@ -50,7 +50,7 @@
             <canvas id="deauthChart"></canvas>
         </div>
         <div class="chart-description">
-            <p>Shows deauthentication frames detected in real-time. Spikes above the threshold line may indicate an attack.</p>
+            <p>Shows deauthentication frames detected in real-time with 5-second intervals. Bars above the yellow threshold line may indicate an attack.</p>
         </div>
     </div>
 
@@ -110,9 +110,25 @@ function updateDeauthChart() {
                 deauthChart.destroy();
             }
             
+            // Get threshold value from the data
+            const threshold = data.datasets[1].data[0]; // Get threshold from the second dataset
+            
+            // Modify color of bars based on threshold
+            const originalData = data.datasets[0].data;
+            const backgroundColors = originalData.map(value => 
+                value >= threshold ? 'rgba(231, 76, 60, 0.7)' : 'rgba(52, 152, 219, 0.6)'
+            );
+            const borderColors = originalData.map(value => 
+                value >= threshold ? 'rgba(231, 76, 60, 1)' : 'rgba(52, 152, 219, 1)'
+            );
+            
+            // Apply colors to dataset
+            data.datasets[0].backgroundColor = backgroundColors;
+            data.datasets[0].borderColor = borderColors;
+            
             // Create new chart
             deauthChart = new Chart(ctx, {
-                type: 'line',
+                type: 'bar', // Changed from line to bar for better visibility
                 data: data,
                 options: {
                     responsive: true,
@@ -122,6 +138,11 @@ function updateDeauthChart() {
                             title: {
                                 display: true,
                                 text: 'Time'
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10 // Show fewer time labels for clarity
                             }
                         },
                         y: {
@@ -130,11 +151,14 @@ function updateDeauthChart() {
                                 text: 'Frame Count'
                             },
                             beginAtZero: true,
-                            suggestedMax: 20,  // Adjust based on typical frame counts
+                            suggestedMax: 15,  // Lower max to make small numbers more visible
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines
+                            }
                         }
                     },
                     animation: {
-                        duration: 500  // Faster animation for real-time updates
+                        duration: 300  // Even faster animation for real-time updates
                     },
                     plugins: {
                         legend: {
@@ -145,6 +169,14 @@ function updateDeauthChart() {
                             text: 'Deauthentication Frames (10s intervals)'
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 14
+                            },
                             callbacks: {
                                 title: function(tooltipItems) {
                                     return tooltipItems[0].label;
@@ -294,7 +326,7 @@ window.addEventListener('load', function() {
     updateAttackChart();
     
     // Update charts periodically
-    setInterval(updateDeauthChart, 2000);    // Update deauth chart every 2 seconds
+    setInterval(updateDeauthChart, 1000);    // Update deauth chart every second
     setInterval(updateSpectrumChart, 5000);  // Update spectrum chart every 5 seconds
     setInterval(updateAttackChart, 60000);   // Update attack history chart every minute
 });

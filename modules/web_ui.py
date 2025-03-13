@@ -146,9 +146,9 @@ def deauth_frames_data():
     # Get deauth count time series
     # This endpoint is used for the real-time deauth frame counter visualization
     
-    # Prepare frame data structure - assume last 10 minutes of data
-    # with 10-second intervals
-    intervals = 60  # 10 minutes in 10-second intervals
+    # Prepare frame data structure - assume last 5 minutes of data
+    # with 5-second intervals
+    intervals = 60  # 5 minutes in 5-second intervals
     
     # Simulation data if we don't have real deauth data yet
     deauth_counts = system_state.deauth_counts if hasattr(system_state, 'deauth_counts') else []
@@ -164,7 +164,7 @@ def deauth_frames_data():
     now = datetime.now()
     timestamps = []
     for i in range(intervals):
-        time_ago = now - timedelta(seconds=(intervals-i-1)*10)
+        time_ago = now - timedelta(seconds=(intervals-i-1)*5)
         timestamps.append(time_ago.strftime('%H:%M:%S'))
     
     # Define the threshold from config (usually 10)
@@ -177,10 +177,11 @@ def deauth_frames_data():
             {
                 'label': 'Deauth Frames',
                 'data': deauth_counts,
-                'backgroundColor': 'rgba(231, 76, 60, 0.2)',
-                'borderColor': 'rgba(231, 76, 60, 1)',
-                'borderWidth': 2,
-                'tension': 0.4  # Makes the line curved for better visualization
+                'backgroundColor': 'rgba(52, 152, 219, 0.6)',  # Use blue as default color
+                'borderColor': 'rgba(52, 152, 219, 1)',
+                'borderWidth': 1,
+                'barPercentage': 0.9,
+                'categoryPercentage': 0.9,
             },
             {
                 'label': 'Threshold',
@@ -189,7 +190,8 @@ def deauth_frames_data():
                 'borderColor': 'rgba(255, 193, 7, 1)',
                 'borderWidth': 2,
                 'borderDash': [5, 5],  # Dashed line for threshold
-                'pointRadius': 0
+                'pointRadius': 0,
+                'type': 'line'  # Ensure this is rendered as a line even in bar chart
             }
         ]
     }
