@@ -1,0 +1,313 @@
+/* Global styles */
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --background-color: #f5f5f5;
+    --card-bg-color: #ffffff;
+    --text-color: #333333;
+    --border-color: #dddddd;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --info-color: #3498db;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    padding-bottom: 20px;
+}
+
+header {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+nav {
+    margin-top: 0.5rem;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+}
+
+nav li {
+    margin-right: 1rem;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+nav a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+main {
+    max-width: 1200px;
+    margin: 1rem auto;
+    padding: 0 1rem;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    margin-top: 2rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Card styles */
+.card {
+    background-color: var(--card-bg-color);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+/* Dashboard styles */
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .dashboard .recent-events {
+        grid-column: span 2;
+    }
+}
+
+/* System info styles */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-label {
+    font-weight: bold;
+}
+
+/* Module styles */
+.module-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.module-item {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1rem;
+    background-color: #f9f9f9;
+}
+
+.module-name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.module-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.status-running {
+    background-color: var(--success-color);
+}
+
+.status-stopped {
+    background-color: var(--danger-color);
+}
+
+.status-error {
+    background-color: var(--danger-color);
+}
+
+.status-warning {
+    background-color: var(--warning-color);
+}
+
+.module-details {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.module-updated {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Event styles */
+.events-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.event-item {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    overflow: hidden;
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    color: white;
+    font-weight: bold;
+}
+
+.event-deauth_attack .event-header {
+    background-color: var(--danger-color);
+}
+
+.event-jamming_attack .event-header {
+    background-color: var(--warning-color);
+}
+
+.event-details {
+    padding: 1rem;
+    font-size: 0.9rem;
+}
+
+.event-details pre {
+    overflow-x: auto;
+    background-color: #f5f5f5;
+    padding: 0.5rem;
+    border-radius: 3px;
+}
+
+/* Log styles */
+.logs table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.logs th, .logs td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.logs th {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.logs tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+.logs .actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Log view styles */
+.view-log .log-actions {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-log .log-content {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.view-log pre {
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+/* Config styles */
+.config-content {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.config-content pre {
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+/* Button styles */
+.button {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #2980b9;
+}
+
+/* Error page */
+.error-message {
+    background-color: #fee;
+    border: 1px solid #f99;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}

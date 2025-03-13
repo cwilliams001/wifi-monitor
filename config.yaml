@@ -1,0 +1,68 @@
+# WiFi Attack Monitoring System Configuration
+
+# General settings
+general:
+  debug_mode: false                 # Enable debug logging
+  log_directory: "/var/log/wifi-monitor"
+  nas_offload:
+    enabled: false                  # Enable log offloading to NAS
+    path: "/mnt/nas/wifi-monitor"   # NAS mount point
+    schedule: "daily"               # Offload frequency: "realtime", "hourly", "daily"
+
+# WiFi deauth detection settings
+deauth_detection:
+  enabled: true
+  interface: "wlan1"                # Monitor-mode interface
+  channel: 0                        # 0 for channel hopping, or specific channel number
+  threshold:
+    count: 10                       # Number of deauth frames to trigger alert
+    window: 30                      # Time window in seconds
+  whitelist:                        # MAC addresses to ignore (APs that legitimately send deauths)
+    # - "00:11:22:33:44:55"
+  channel_hop_interval: 5           # Seconds between channel changes when hopping
+
+# Jamming detection settings 
+jamming_detection:
+  enabled: true
+  sdr_device: "b205"              # "hackrf" or "b205"
+  scan_bands:
+    - name: "2.4GHz"
+      start_freq: 2400000000        # 2.4 GHz start in Hz
+      end_freq: 2500000000          # 2.5 GHz end in Hz
+      step: 5000000                 # 5 MHz steps
+    - name: "5GHz"
+      start_freq: 5150000000        # 5.15 GHz start in Hz
+      end_freq: 5850000000          # 5.85 GHz end in Hz
+      step: 10000000                # 10 MHz steps
+  sample_rate: 20000000             # 20 MHz sample rate
+  fft_size: 1024                    # FFT bins for spectrum analysis
+  threshold:
+    relative_db: 15                 # dB above baseline to trigger alert
+    duration: 5                     # Seconds of continuous detection to confirm
+  calibration:
+    enabled: true                   # Auto-calibrate baseline
+    interval: 3600                  # Recalibrate every 3600 seconds (1 hour)
+
+# Alerting settings
+alerts:
+  web_server:
+    enabled: true
+    url: "http://192.168.1.60:5000/api/alerts"
+    auth_token: "your_secret_token"
+    timeout: 5                      # HTTP request timeout in seconds
+  home_assistant:
+    enabled: true
+    direct_webhook: false           # If true, send directly to HA. If false, rely on web server
+    webhook_url: "http://192.168.1.60:8123/api/webhook/wifi_attack_alert"
+  retry:
+    max_attempts: 3
+    delay: 5                        # Seconds between retry attempts
+
+# Web UI settings
+web_ui:
+  enabled: true
+  host: "0.0.0.0"                   # Listen on all interfaces
+  port: 8080                        # Web UI port
+  auth_enabled: true                # Enable basic authentication
+  password: "admin"                 # Default password (change this!)
+  debug: false                      # Enable debug mode

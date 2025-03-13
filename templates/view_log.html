@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block title %}View Log - {{ filename }}{% endblock %}
+
+{% block content %}
+<section class="view-log">
+    <h2>Log File: {{ filename }}</h2>
+    
+    <div class="log-actions">
+        <a href="{{ url_for('logs') }}" class="button">Back to Logs</a>
+        <a href="{{ url_for('download_log', filename=filename, download='true') }}" class="button">Download</a>
+    </div>
+    
+    <div class="log-content">
+        <pre>{{ contents }}</pre>
+    </div>
+</section>
+{% endblock %}

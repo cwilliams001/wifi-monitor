@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<meta http-equiv="refresh" content="10">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard">
+    <div class="card system-info">
+        <h2>System Status</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Uptime:</span>
+                <span class="info-value">{{ uptime }}</span>
+            </div>
+            
+            {% for key, value in system_state.system_info.items() %}
+            <div class="info-item">
+                <span class="info-label">{{ key|capitalize }}:</span>
+                <span class="info-value">{{ value }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card modules">
+        <h2>Module Status</h2>
+        <div class="module-grid">
+            {% for name, data in system_state.modules_status.items() %}
+            <div class="module-item">
+                <div class="module-name">{{ name }}</div>
+                <div class="module-status status-{{ data.status|lower }}">{{ data.status }}</div>
+                {% if data.details %}
+                <div class="module-details">{{ data.details }}</div>
+                {% endif %}
+                <div class="module-updated">Last update: {{ data.last_update }}</div>
+            </div>
+            {% else %}
+            <p>No module status information available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card recent-events">
+        <h2>Recent Events</h2>
+        {% if system_state.last_events %}
+        <div class="events-list">
+            {% for event in system_state.last_events %}
+            <div class="event-item event-{{ event.event_type }}">
+                <div class="event-header">
+                    <span class="event-type">{{ event.event_type|replace('_', ' ')|capitalize }}</span>
+                    <span class="event-time">{{ event.timestamp }}</span>
+                </div>
+                <div class="event-details">
+                    <pre>{{ event|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>No attack events detected yet.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh the page every 10 seconds
+setTimeout(function() {
+    location.reload();
+}, 10000);
+</script>
+{% endblock %}

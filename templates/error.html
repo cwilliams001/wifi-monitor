@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+<section class="error">
+    <h2>Error</h2>
+    
+    <div class="error-message">
+        <p>{{ error }}</p>
+    </div>
+    
+    <a href="{{ url_for('index') }}" class="button">Return to Dashboard</a>
+</section>
+{% endblock %}
