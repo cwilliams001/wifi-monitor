@@ -96,11 +96,13 @@ class DeauthDetector(Thread):
     
     def _is_deauth_packet(self, packet):
         """Check if a packet is a deauthentication frame"""
+        if not hasattr(packet, 'haslayer'):
+            return False
         return packet.haslayer(Dot11Deauth)
     
     def _should_ignore(self, packet):
         """Check if a packet should be ignored based on whitelist"""
-        if not packet.haslayer(Dot11):
+        if not hasattr(packet, 'haslayer') or not packet.haslayer(Dot11):
             return True
             
         # Extract MAC addresses
@@ -115,13 +117,20 @@ class DeauthDetector(Thread):
     
     def _packet_handler(self, packet):
         """Process captured packets and detect deauth attacks"""
-        if not self._is_deauth_packet(packet) or self._should_ignore(packet):
+        try:
+            if not self._is_deauth_packet(packet) or self._should_ignore(packet):
+                return
+        except Exception as e:
+            logging.debug(f"Error checking packet: {e}")
             return
             
         # Get source and destination MAC addresses
         src = packet.addr2 if packet.addr2 else "Unknown"
         dst = packet.addr1 if packet.addr1 else "Broadcast"
         reason = packet.reason if hasattr(packet, 'reason') else 0
+        
+        # Log deauth packet for debugging
+        logging.debug(f"Detected deauth packet: {src} -> {dst}, Reason: {reason}")
         
         # Record this deauth frame with current timestamp
         now = time.time()
@@ -156,6 +165,10 @@ class DeauthDetector(Thread):
             }
             
             # Send alert and reset history to avoid multiple alerts for same event
+            logging.warning(f"Deauth attack detected! {recent_count} frames in {self.threshold_window}s")
+            logging.warning(f"ALERT: deauth_attack - {datetime.utcnow().isoformat()}")
+            
+            # Send alert to manager which will pass it to the Web UI
             self.alert_manager.send_alert(alert_data)
             self.deauth_history.clear()
             

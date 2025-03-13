@@ -148,6 +148,21 @@ function updateAttackChart() {
                 attackChart.destroy();
             }
             
+            // Log the data for debugging
+            console.log('Attack history data:', data);
+            
+            // If there's no data, create an empty chart
+            if (!data.labels || data.labels.length === 0) {
+                data = {
+                    labels: ['No Data'],
+                    datasets: [{
+                        label: 'No Attack History',
+                        data: [0],
+                        backgroundColor: 'rgba(200, 200, 200, 0.5)',
+                    }]
+                };
+            }
+            
             // Create new chart
             attackChart = new Chart(ctx, {
                 type: 'bar',
@@ -197,6 +212,79 @@ window.addEventListener('load', function() {
     setInterval(updateSpectrumChart, 5000);
     setInterval(updateAttackChart, 60000);
 });
+
+// Auto-refresh the page every 30 seconds
+// Check for new alerts every 3 seconds
+let lastEventCount = 0;
+function checkForNewAlerts() {
+    fetch('/events')
+        .then(response => response.json())
+        .then(events => {
+            if (events.length > lastEventCount && lastEventCount > 0) {
+                // New alert!
+                const newEvent = events[0];
+                showNotification(newEvent.event_type, new Date(newEvent.timestamp).toLocaleTimeString());
+            }
+            lastEventCount = events.length;
+        })
+        .catch(error => console.error('Error checking alerts:', error));
+}
+
+// Show browser notification
+function showNotification(type, time) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <strong>${type.replace('_', ' ').toUpperCase()}</strong>
+            <p>Attack detected at ${time}</p>
+        </div>
+        <button class="close-notification">×</button>
+    `;
+    
+    // Add to body
+    document.body.appendChild(notification);
+    
+    // Add style
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.backgroundColor = '#e74c3c';
+    notification.style.color = 'white';
+    notification.style.padding = '15px';
+    notification.style.borderRadius = '5px';
+    notification.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+    notification.style.zIndex = '1000';
+    notification.style.minWidth = '300px';
+    
+    // No sound notification for now
+    // We'll use Home Assistant for notifications later
+    
+    // Close button
+    const closeBtn = notification.querySelector('.close-notification');
+    closeBtn.style.background = 'none';
+    closeBtn.style.border = 'none';
+    closeBtn.style.color = 'white';
+    closeBtn.style.fontSize = '20px';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.float = 'right';
+    
+    closeBtn.addEventListener('click', () => {
+        document.body.removeChild(notification);
+    });
+    
+    // Auto remove after 10 seconds
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+        }
+    }, 10000);
+}
+
+// Start checking for alerts
+setInterval(checkForNewAlerts, 3000);
 
 // Auto-refresh the page every 30 seconds
 setTimeout(function() {

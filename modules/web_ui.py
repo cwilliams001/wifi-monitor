@@ -309,6 +309,9 @@ def receive_alert():
             if 'timestamp' not in alert_data:
                 alert_data['timestamp'] = datetime.utcnow().isoformat()
                 
+            # Log alert for debugging
+            logging.info(f"Web UI received alert: {alert_data['event_type']} at {alert_data['timestamp']}")
+                
             # Add to recent events
             system_state.last_events.insert(0, alert_data)
             
@@ -344,9 +347,15 @@ def receive_alert():
                     if event['timestamp'] > cutoff
                 ]
                 
+                # Log the attack history size
+                logging.debug(f"Attack history size: {len(system_state.attack_history)} events")
+                
             return jsonify({"status": "success"})
     except Exception as e:
         logging.error(f"Error processing alert: {e}")
+        logging.error(f"Alert data: {request.data}")
+        import traceback
+        logging.error(f"Traceback: {traceback.format_exc()}")
         
     return jsonify({"status": "error"}), 400
     

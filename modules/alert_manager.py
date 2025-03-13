@@ -85,6 +85,13 @@ class AlertManager:
         
         # Also log immediately for visibility
         logging.warning(f"ALERT: {alert_data['event_type']} - {alert_data['timestamp']}")
+        
+        # Directly notify web UI for immediate display (in addition to queue)
+        try:
+            self._notify_web_ui(alert_data)
+            logging.debug(f"Sent alert directly to Web UI: {alert_data['event_type']}")
+        except Exception as e:
+            logging.debug(f"Failed to send direct alert to Web UI: {e}")
     
     def _notify_web_ui(self, alert_data):
         """
@@ -96,14 +103,18 @@ class AlertManager:
         if WEB_UI_AVAILABLE:
             try:
                 # Send alert to Web UI via local API
-                requests.post(
+                response = requests.post(
                     'http://127.0.0.1:8080/api/alert',
                     json=alert_data,
                     timeout=1
                 )
-            except Exception:
-                # Ignore errors - Web UI might not be running
-                pass
+                logging.debug(f"Web UI notification response: {response.status_code}")
+                return response.status_code < 400
+            except Exception as e:
+                # Log errors for debugging
+                logging.debug(f"Failed to notify Web UI: {e}")
+                return False
+        return False
                 
     def _log_to_file(self, alert_data):
         """
