@@ -99,21 +99,58 @@ class SpectrumAnalyzer(Thread):
         try:
             # List available devices
             devices = SoapySDR.Device.enumerate()
+            logging.info(f"SoapySDR found {len(devices)} devices")
             if not devices:
                 logging.error("No SDR devices found")
                 return False
                 
             # Find a matching device
             device_found = False
+            driver_match = None
+            
             for device_info in devices:
-                logging.debug(f"Found SDR: {device_info}")
+                logging.info(f"Found SDR: {device_info}")
+                logging.info(f"SDR device type: {type(device_info)}")
+                
+                # Check if device_info has a driver key (safely check)
+                driver = None
+                try:
+                    # Try different ways to access the driver information
+                    if hasattr(device_info, 'driver'):
+                        driver = device_info.driver
+                        logging.info("Accessed driver as attribute")
+                    elif hasattr(device_info, '__getitem__'):
+                        try:
+                            driver = device_info['driver']
+                            logging.info("Accessed driver with __getitem__")
+                        except (KeyError, TypeError):
+                            logging.info("Driver key not found with __getitem__")
+                    elif hasattr(device_info, '__dict__'):
+                        driver = device_info.__dict__.get('driver')
+                        logging.info("Accessed driver from __dict__")
+                    
+                    # Try to get all available keys
+                    if hasattr(device_info, '__dict__'):
+                        logging.info(f"Object __dict__: {device_info.__dict__}")
+                    if hasattr(device_info, 'keys'):
+                        logging.info(f"Object keys: {list(device_info.keys())}")
+                    elif hasattr(device_info, '__dir__'):
+                        logging.info(f"Object dir: {dir(device_info)}")
+                        
+                except Exception as e:
+                    logging.info(f"Error accessing driver: {e}")
+                    driver = str(device_info)  # Use string representation as fallback
+                
+                logging.info(f"Device driver: {driver}")
                 
                 # Check if this matches our configured device
-                if self.sdr_device.lower() == 'hackrf' and 'hackrf' in device_info.get('driver', '').lower():
+                if driver and self.sdr_device.lower() == 'hackrf' and 'hackrf' in driver.lower():
                     device_found = True
+                    driver_match = device_info
                     break
-                elif self.sdr_device.lower() == 'b205' and ('b205' in device_info.get('driver', '').lower() or 'uhd' in device_info.get('driver', '').lower()):
+                elif driver and self.sdr_device.lower() == 'b205' and ('b205' in driver.lower() or 'uhd' in driver.lower()):
                     device_found = True
+                    driver_match = device_info
                     break
             
             if not device_found:
@@ -121,10 +158,42 @@ class SpectrumAnalyzer(Thread):
                 return False
                 
             # Create device instance
-            self.sdr = SoapySDR.Device(dict(device_info))
-            
-            # Configure SDR settings
-            self.sdr.setSampleRate(SOAPY_SDR_RX, 0, self.sample_rate)
+            try:
+                logging.info(f"Attempting to create SDR device with: {driver_match}")
+                
+                # Try different initialization approaches
+                try:
+                    # First attempt: use the object directly
+                    self.sdr = SoapySDR.Device(driver_match)
+                    logging.info("SDR initialized with direct object")
+                except Exception as e1:
+                    logging.info(f"Direct initialization failed: {e1}")
+                    
+                    try:
+                        # Second attempt: try with a string argument
+                        device_str = str(driver_match)
+                        logging.info(f"Trying string initialization: {device_str}")
+                        self.sdr = SoapySDR.Device(device_str)
+                        logging.info("SDR initialized with string")
+                    except Exception as e2:
+                        logging.info(f"String initialization failed: {e2}")
+                        
+                        try:
+                            # Third attempt: create an empty device with the correct driver
+                            driver_dict = {"driver": self.sdr_device.lower()}
+                            logging.info(f"Trying with simple driver dict: {driver_dict}")
+                            self.sdr = SoapySDR.Device(driver_dict)
+                            logging.info("SDR initialized with driver dictionary")
+                        except Exception as e3:
+                            logging.error(f"All initialization attempts failed: {e3}")
+                            raise
+                
+                # Configure SDR settings
+                self.sdr.setSampleRate(SOAPY_SDR_RX, 0, self.sample_rate)
+                logging.info("Successfully set sample rate")
+            except Exception as e:
+                logging.error(f"Failed to create SDR device: {e}")
+                return False
             
             # Set reasonable gain based on device type
             if self.sdr_device.lower() == 'hackrf':
