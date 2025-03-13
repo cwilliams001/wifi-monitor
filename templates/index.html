@@ -50,7 +50,7 @@
             <canvas id="deauthChart"></canvas>
         </div>
         <div class="chart-description">
-            <p>Shows deauthentication frames in 5-second intervals. Blue bars show normal activity, red bars indicate when frames exceed the alert threshold (yellow line).</p>
+            <p>Shows deauthentication frames in 5-second intervals. Blue bars show normal activity, red bars indicate when frames exceed the alert threshold (yellow line). Time labels shown every 15 seconds to improve readability.</p>
         </div>
     </div>
 
@@ -58,6 +58,9 @@
         <h2>RF Spectrum</h2>
         <div class="spectrum-chart-container">
             <canvas id="spectrumChart"></canvas>
+        </div>
+        <div class="chart-description">
+            <p>Shows WiFi frequency spectrum power levels. Current values (blue), baseline (green), and threshold (red). Simplified frequency display with fewer labels for better readability.</p>
         </div>
     </div>
     
@@ -171,9 +174,16 @@ function updateDeauthChart() {
                             ticks: {
                                 maxRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 6, // Even fewer time labels for better readability
+                                maxTicksLimit: 5, // Show fewer time labels to prevent overlap
+                                callback: function(value, index, values) {
+                                    // Only show every 3rd label (15 second intervals)
+                                    if (index % 3 === 0) {
+                                        return this.getLabelForValue(value);
+                                    }
+                                    return null;
+                                },
                                 font: {
-                                    size: 12,
+                                    size: 14,
                                     weight: 'bold'
                                 }
                             }
@@ -205,7 +215,11 @@ function updateDeauthChart() {
                         },
                         title: {
                             display: true,
-                            text: 'Deauthentication Frames (10s intervals)'
+                            text: 'Deauthentication Frames (5s intervals)',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -265,13 +279,39 @@ function updateSpectrumChart() {
                         x: {
                             title: {
                                 display: true,
-                                text: 'Frequency (MHz)'
+                                text: 'Frequency (MHz)',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10, // Show fewer frequency points
+                                callback: function(value, index, values) {
+                                    // Show fewer labels to reduce clutter
+                                    if (index % 3 === 0) {
+                                        return this.getLabelForValue(value);
+                                    }
+                                    return null;
+                                },
+                                font: {
+                                    weight: 'bold'
+                                }
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Power (dBm)'
+                                text: 'Power (dBm)',
+                                font: {
+                                    weight: 'bold',
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines for better visibility
                             }
                         }
                     },
@@ -279,10 +319,35 @@ function updateSpectrumChart() {
                     plugins: {
                         legend: {
                             position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                padding: 20
+                            }
                         },
                         title: {
                             display: true,
-                            text: 'RF Spectrum Power Levels'
+                            text: 'RF Spectrum Power Levels',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 13,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            borderWidth: 3, // Thicker lines
+                            tension: 0.2 // Slightly smoother curves
+                        },
+                        point: {
+                            radius: 0 // Hide points for cleaner look
                         }
                     }
                 }
