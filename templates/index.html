@@ -50,7 +50,7 @@
             <canvas id="deauthChart"></canvas>
         </div>
         <div class="chart-description">
-            <p>Shows deauthentication frames detected in real-time with 5-second intervals. Bars above the yellow threshold line may indicate an attack.</p>
+            <p>Shows deauthentication frames in 5-second intervals. Blue bars show normal activity, red bars indicate when frames exceed the alert threshold (yellow line).</p>
         </div>
     </div>
 
@@ -122,9 +122,38 @@ function updateDeauthChart() {
                 value >= threshold ? 'rgba(231, 76, 60, 1)' : 'rgba(52, 152, 219, 1)'
             );
             
-            // Apply colors to dataset
-            data.datasets[0].backgroundColor = backgroundColors;
-            data.datasets[0].borderColor = borderColors;
+            // Create a new dataset just for the legend with the alert color
+            // Update the original dataset label
+            data.datasets[0].label = 'Normal Frames';
+            data.datasets[0].backgroundColor = 'rgba(52, 152, 219, 0.6)';  // Blue for normal
+            data.datasets[0].borderColor = 'rgba(52, 152, 219, 1)';
+            
+            // Create an alert dataset with transparent bars for values below threshold
+            // and red bars for values above threshold
+            const alertData = originalData.map(value => 
+                value >= threshold ? value : null  // Only show values above threshold
+            );
+            
+            // Add the alert dataset
+            data.datasets.splice(1, 0, {
+                label: 'Alert Threshold Exceeded',
+                data: alertData,
+                backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                borderColor: 'rgba(231, 76, 60, 1)',
+                borderWidth: 1,
+                barPercentage: 0.9,
+                categoryPercentage: 0.9,
+                stack: 'stack1' // Use stacking to ensure bars don't overlap
+            });
+            
+            // Also stack the normal frames
+            data.datasets[0].stack = 'stack1';
+            
+            // Original dataset now uses plain colors
+            // but we make points under the alert level null so they don't show
+            data.datasets[0].data = originalData.map(value => 
+                value < threshold ? value : null
+            );
             
             // Create new chart
             deauthChart = new Chart(ctx, {
@@ -142,7 +171,11 @@ function updateDeauthChart() {
                             ticks: {
                                 maxRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 10 // Show fewer time labels for clarity
+                                maxTicksLimit: 6, // Even fewer time labels for better readability
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
                             }
                         },
                         y: {
@@ -151,9 +184,15 @@ function updateDeauthChart() {
                                 text: 'Frame Count'
                             },
                             beginAtZero: true,
-                            suggestedMax: 15,  // Lower max to make small numbers more visible
+                            suggestedMax: 12,  // Even lower max to make small numbers more visible
                             grid: {
                                 color: 'rgba(0, 0, 0, 0.1)', // Darker grid lines
+                            },
+                            ticks: {
+                                stepSize: 1,  // Always use whole numbers
+                                font: {
+                                    weight: 'bold'
+                                }
                             }
                         }
                     },
