@@ -126,26 +126,72 @@ install_common_deps() {
 
 # Install Python dependencies
 install_python_deps() {
-    print_message "Installing Python dependencies..."
+    print_message "Installing Python dependencies using apt packages..."
     
-    # Upgrade pip
-    python3 -m pip install --upgrade pip
-    
-    # Install required Python packages
-    python3 -m pip install \
-        scapy \
-        pyyaml \
-        requests \
-        numpy \
-        flask \
-        werkzeug
+    # Use apt packages instead of pip
+    if [[ "$DISTRO" == "ubuntu" || "$DISTRO" == "debian" || "$DISTRO" == "raspbian" ]]; then
+        apt-get install -y \
+            python3-scapy \
+            python3-yaml \
+            python3-requests \
+            python3-numpy \
+            python3-flask \
+            python3-werkzeug \
+            python3-soapysdr
+        
+        # Check if all packages were installed successfully
+        if [ $? -ne 0 ]; then
+            print_warning "Some Python packages could not be installed via apt."
+            print_message "You may need to install missing packages manually."
+            print_message "Options include:"
+            print_message "1. Use pipx: sudo apt install pipx; pipx install <package>"
+            print_message "2. Use --break-system-packages (not recommended): pip install --break-system-packages <package>"
+            print_message "3. Use --user (for non-root installs): pip install --user <package>"
+        fi
+    elif [[ "$DISTRO" == "fedora" || "$DISTRO" == "centos" || "$DISTRO" == "rhel" ]]; then
+        dnf install -y \
+            python3-scapy \
+            python3-pyyaml \
+            python3-requests \
+            python3-numpy \
+            python3-flask \
+            python3-werkzeug
+        
+        # Try pip for SoapySDR on these distros
+        python3 -m pip install soapysdr --user
+        
+    elif [[ "$DISTRO" == "arch" || "$DISTRO" == "manjaro" ]]; then
+        pacman -Sy --noconfirm \
+            python-scapy \
+            python-yaml \
+            python-requests \
+            python-numpy \
+            python-flask \
+            python-werkzeug
+        
+        # Try pip for SoapySDR on arch
+        python3 -m pip install soapysdr --user
+    else
+        print_warning "Unsupported distribution for Python packages."
+        print_message "Installing with pip as a fallback (may not work on all systems)..."
+        
+        # Try user installation
+        python3 -m pip install --user \
+            scapy \
+            pyyaml \
+            requests \
+            numpy \
+            flask \
+            werkzeug \
+            'https://github.com/pothosware/python-soapysdr/archive/master.zip'
+    fi
     
     # Install SoapySDR Python bindings - this is different depending on the distro
     if [[ "$DISTRO" == "ubuntu" || "$DISTRO" == "debian" || "$DISTRO" == "raspbian" ]]; then
         apt-get install -y python3-soapysdr
     else
-        # Try pip for other distros, but it might not work everywhere
-        python3 -m pip install 'https://github.com/pothosware/python-soapysdr/archive/master.zip' || true
+        # Try pip for other distros, but with --user
+        python3 -m pip install --user 'https://github.com/pothosware/python-soapysdr/archive/master.zip' || true
         
         # If pip failed, give instructions for manual installation
         if ! python3 -c "import SoapySDR" &> /dev/null; then
