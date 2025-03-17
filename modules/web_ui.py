@@ -167,8 +167,8 @@ def deauth_frames_data():
         time_ago = now - timedelta(seconds=(intervals-i-1)*5)
         timestamps.append(time_ago.strftime('%H:%M:%S'))
     
-    # Define the threshold from config (usually 10)
-    threshold = 10  # Default value, should be read from config
+    # Get the threshold from system_state (dynamically updated from config)
+    threshold = system_state.deauth_threshold if hasattr(system_state, 'deauth_threshold') else 10
     
     # Create the chart data
     result = {
